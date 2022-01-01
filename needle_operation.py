@@ -1,10 +1,30 @@
-import attach_needle
+#from utils.attach_needle import attach_needle
 from ambf_client import Client
-from surgical_robotics_challenge.psm_arm import PSM
+import psm_arm
+from geometry_msgs.msg import TransformStamped
+from sensor_msgs.msg import JointState
+import rospy
+from PyKDL import Rotation
+import time
+import keyboard
 
-'''
-copy from attach_needle
-'''
+
+class RobotData:
+    def __init__(self):
+        self.measured_js = JointState()
+        self.measured_cp = TransformStamped()
+
+
+robData = RobotData()
+
+
+def measured_js_cb(msg):
+    robData.measured_js = msg
+
+
+def measured_cp_cb(msg):
+    robData.measured_cp = msg
+
 rospy.init_node("sur_chal_crtk_test")
 
 namespace = "/CRTK/"
@@ -24,27 +44,44 @@ servo_cp_pub = rospy.Publisher(servo_cp_name, TransformStamped, queue_size=1)
 
 rate = rospy.Rate(50)
 
-servo_jp_msg = JointState()
-servo_jp_msg.position = [0., 0., 1.0, 0., 0., 0.]
+'''don't change above'''
 
 servo_cp_msg = TransformStamped()
-servo_cp_msg.transform.translation.z = -1.0
-R_7_0 = Rotation.RPY(3.14, 0.0, 1.57079)
+servo_cp_msg.transform.translation.x = 0.5
+servo_cp_msg.transform.translation.y = 0.18
+servo_cp_msg.transform.translation.z = -1.168
+
+R_7_0 = Rotation.RPY(3.14, -1.5, 1.57079)
 
 servo_cp_msg.transform.rotation.x = R_7_0.GetQuaternion()[0]
 servo_cp_msg.transform.rotation.y = R_7_0.GetQuaternion()[1]
 servo_cp_msg.transform.rotation.z = R_7_0.GetQuaternion()[2]
 servo_cp_msg.transform.rotation.w = R_7_0.GetQuaternion()[3]
 
-c = Client('attach_needle')
-c.connect()
-time.sleep(0.5)
+while not rospy.is_shutdown():
+    valid_key = False
+    key = None
+    while not valid_key:
+        key = input("Press: \n")
 
-needle = c.get_obj_handle('Needle')
-link1 = c.get_obj_handle('psm1' + '/toolyawlink')
-link2 = c.get_obj_handle('psm2' + '/toolyawlink')
-link3 = c.get_obj_handle('psm3' + '/toolyawlink')
-attach_needle.attach_needle(needle, link1)
+        try:
+            key = int(key)
+        except ValueError:
+            key = None
+        pass
 
-test = PSM(c, 'test')
-test.run_grasp_logic(0.10)
+        if key in [1, 2, 3]:
+            valid_key = True
+        else:
+            print("Invalid Entry")
+        if key == 1:
+            servo_cp_msg.transform.translation.x = input()
+            print('changed x')
+	
+        while True:
+            if keyboard.read_key() == 'p':
+                break
+            servo_cp_pub.publish(servo_cp_msg)
+
+# world coordinate position
+# [0.559 0.179 -1.168 3.14 1.680 1.57]
