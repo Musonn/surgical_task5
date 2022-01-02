@@ -84,7 +84,9 @@ while not rospy.is_shutdown():
             servo_cp_pub.publish(servo_cp_msg)
 
 # world coordinate position
-# [0.559 0.179 -1.168 3.14 1.680 1.57]
+# [0.559 0.179 -1.168 3.14 -1.5 1.57]
+
+
 c = Client('attach_needle')
 c.connect()
 # psm_name =

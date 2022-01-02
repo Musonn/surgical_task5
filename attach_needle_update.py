@@ -122,29 +122,29 @@ def psm2_btn_cb():
 def psm3_btn_cb():
     attach_needle(needle, link3)
 
+if __name__ == "__main__":
+    c = Client('attach_needle')
+    c.connect()
+    # psm_name =
+    needle = c.get_obj_handle('Needle')
+    link1 = c.get_obj_handle('psm1' + '/toolyawlink')
+    link2 = c.get_obj_handle('psm2' + '/toolyawlink')
+    link3 = c.get_obj_handle('psm3' + '/toolyawlink')
 
-c = Client('attach_needle')
-c.connect()
-# psm_name =
-needle = c.get_obj_handle('Needle')
-link1 = c.get_obj_handle('psm1' + '/toolyawlink')
-link2 = c.get_obj_handle('psm2' + '/toolyawlink')
-link3 = c.get_obj_handle('psm3' + '/toolyawlink')
+    tk = Tk()
+    tk.title("Attache Needle")
+    tk.geometry("250x250")
+    link1_button = Button(tk, text="PSM 1", command=psm1_btn_cb,
+                        height=3, width=50, bg="red")
+    link2_button = Button(tk, text="PSM 2", command=psm2_btn_cb,
+                        height=3, width=50, bg="green")
+    link3_button = Button(tk, text="PSM 3", command=psm3_btn_cb,
+                        height=3, width=50, bg="blue")
 
-tk = Tk()
-tk.title("Attache Needle")
-tk.geometry("250x250")
-link1_button = Button(tk, text="PSM 1", command=psm1_btn_cb,
-                      height=3, width=50, bg="red")
-link2_button = Button(tk, text="PSM 2", command=psm2_btn_cb,
-                      height=3, width=50, bg="green")
-link3_button = Button(tk, text="PSM 3", command=psm3_btn_cb,
-                      height=3, width=50, bg="blue")
+    link1_button.pack()
+    link2_button.pack()
+    link3_button.pack()
 
-link1_button.pack()
-link2_button.pack()
-link3_button.pack()
+    tk.mainloop()
 
-tk.mainloop()
-
-c.clean_up()
+    c.clean_up()
