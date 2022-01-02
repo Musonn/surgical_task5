@@ -25,6 +25,7 @@ def measured_js_cb(msg):
 def measured_cp_cb(msg):
     robData.measured_cp = msg
 
+
 rospy.init_node("sur_chal_crtk_test")
 
 namespace = "/CRTK/"
@@ -77,7 +78,7 @@ while not rospy.is_shutdown():
         if key == 1:
             servo_cp_msg.transform.translation.x = input()
             print('changed x')
-	
+
         while True:
             if keyboard.read_key() == 'p':
                 break
@@ -86,11 +87,11 @@ while not rospy.is_shutdown():
 # world coordinate position
 # [0.559 0.179 -1.168 3.14 -1.5 1.57]
 
-
 c = Client('attach_needle')
 c.connect()
-# psm_name =
+# create psm arm
+#arm1 = psm_arm.PSM(c, 'arm1')
 needle = c.get_obj_handle('Needle')
-needle.set_pos(0.5,0.18,-1.168)
-needle.set_rot(R_7_0.GetQuaternion())
-time.sleep(0.5)
+link1 = c.get_obj_handle('psm1' + '/toolyawlink')
+attach_needle(needle, link1)
+link1.run_grasp_logic(0.1)
