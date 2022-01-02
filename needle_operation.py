@@ -1,4 +1,4 @@
-#from utils.attach_needle import attach_needle
+from utils.attach_needle import attach_needle
 from ambf_client import Client
 import psm_arm
 from geometry_msgs.msg import TransformStamped
@@ -85,3 +85,10 @@ while not rospy.is_shutdown():
 
 # world coordinate position
 # [0.559 0.179 -1.168 3.14 1.680 1.57]
+c = Client('attach_needle')
+c.connect()
+# psm_name =
+needle = c.get_obj_handle('Needle')
+needle.set_pos(0.5,0.18,-1.168)
+needle.set_rot(R_7_0.GetQuaternion())
+time.sleep(0.5)
