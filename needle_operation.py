@@ -48,24 +48,17 @@ rate = rospy.Rate(50)
 '''don't change above'''
 
 servo_cp_msg = TransformStamped()
-servo_cp_msg.transform.translation.x = 0.5
-servo_cp_msg.transform.translation.y = 0.18
-servo_cp_msg.transform.translation.z = -1.168
+servo_cp_msg.transform.translation.x = 0.27
+servo_cp_msg.transform.translation.y = -0.168
+servo_cp_msg.transform.translation.z = -1.35
 
-R_7_0 = Rotation.RPY(3.14, -1.5, 1.57079)
+R_7_0 = Rotation.RPY(3.14, 2.16, 0.675)
 
 servo_cp_msg.transform.rotation.x = R_7_0.GetQuaternion()[0]
 servo_cp_msg.transform.rotation.y = R_7_0.GetQuaternion()[1]
 servo_cp_msg.transform.rotation.z = R_7_0.GetQuaternion()[2]
 servo_cp_msg.transform.rotation.w = R_7_0.GetQuaternion()[3]
 
-# use attach_needle.py
-c = Client('attach_needle')
-c.connect()
-# create psm arm
-#arm1 = psm_arm.PSM(c, 'arm1')
-needle = c.get_obj_handle('Needle')
-link1 = c.get_obj_handle('psm1' + '/toolyawlink')
 
 while not rospy.is_shutdown():
     valid_key = False
@@ -88,11 +81,20 @@ while not rospy.is_shutdown():
             print('changed x')
 
         if key == 2:
+        # use attach_needle.py
+            c = Client('attach_needle')
+            c.connect()
+            # create psm arm
+            arm1 = psm_arm.PSM(c, 'arm1')
+            needle = c.get_obj_handle('Needle')
+            link1 = c.get_obj_handle('psm1' + '/toolyawlink')
             attach_needle(needle, link1)
-            link1.run_grasp_logic(0.1)
+            # arm1.run_grasp_logic(0.1)
+            time.sleep(3)
+            c.clean_up()
 
         servo_cp_pub.publish(servo_cp_msg)
-        time.sleep(10)
+        time.sleep(0.1)
 
 # world coordinate position
 # [0.559 0.179 -1.168 3.14 -1.5 1.57]
