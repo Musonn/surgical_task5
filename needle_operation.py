@@ -28,11 +28,26 @@ def measured_cp_cb(msg):
 def measured_jaw_jp(msg):
     robData.measured_jaw_jp = msg
 
+def set_servo_cp(state):
+    '''  set the position of the arm by a state. The input 'state' is a list of information: x,y,z,roll,pitch,yaw '''
+    x,y,z,r,p,yaw = state
+    servo_cp_msg.transform.translation.x = x
+    servo_cp_msg.transform.translation.y = y
+    servo_cp_msg.transform.translation.z = z
+    print(servo_cp_msg)
+
+    R_0 = Rotation.RPY(r, p, yaw)
+    servo_cp_msg.transform.rotation.x = R_0.GetQuaternion()[0]
+    servo_cp_msg.transform.rotation.y = R_0.GetQuaternion()[1]
+    servo_cp_msg.transform.rotation.z = R_0.GetQuaternion()[2]
+    servo_cp_msg.transform.rotation.w = R_0.GetQuaternion()[3]
+    return servo_cp_msg
+
 
 rospy.init_node("sur_chal_crtk_test")
 
 namespace = "/CRTK/"
-arm_name = "psm1"
+arm_name = "psm2"
 measured_js_name = namespace + arm_name + "/measured_js"
 measured_cp_name = namespace + arm_name + "/measured_cp"
 servo_jaw_name = namespace + arm_name + '/jaw/servo_jp'
@@ -59,9 +74,9 @@ servo_jaw_angle_open = JointState()
 servo_jaw_angle_open.position = [0.5, 0, 0, 0, 0, 0]
 
 servo_cp_msg = TransformStamped()
-servo_cp_msg.transform.translation.x = 0.27
-servo_cp_msg.transform.translation.y = -0.168
-servo_cp_msg.transform.translation.z = -1.35
+servo_cp_msg.transform.translation.x = -0.26
+servo_cp_msg.transform.translation.y = 0.011
+servo_cp_msg.transform.translation.z = -1.14
 
 R_7_0 = Rotation.RPY(3.14, 2.16, 0.675)
 
@@ -85,7 +100,7 @@ while not rospy.is_shutdown():
             key = None
         pass
 
-        if key in [1, 2, 3]:
+        if key in [1, 2, 3, 4]:
             valid_key = True
         else:
             print("Invalid Entry")
@@ -111,10 +126,44 @@ while not rospy.is_shutdown():
             time.sleep(0.5)
             servo_jaw_pub.publish(servo_jaw_angle_closed)
             c.clean_up()
+        
+        if key == 3:
+            # grasp needle and point towards the entry
+
+            # here are the hard-code states
+            s1 = [-0.26,0.011,-1.14,2.42,1.02,1.57]
+            s2 = [-0.268,-0.067,-1.179,2.42,1.164,1.57]
+            
+            s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
+            s4 = [-0.6,0.167910,-1.358209,3.005672,0.716418,3.809596]
+            
+            servo_jaw_pub.publish(servo_jaw_angle_open)
+            time.sleep(1)
+            servo_cp_msg = set_servo_cp(s1)
+            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(5)
+            set_servo_cp(s2)
+            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(6)
+            servo_jaw_pub.publish(servo_jaw_angle_closed)
+            time.sleep(6)
+            set_servo_cp(s3)
+            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(6)
+            set_servo_cp(s4)
+            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(6)
 
         servo_cp_pub.publish(servo_cp_msg)
         time.sleep(0.1)
 
 # world coordinate position
 # [0.559 0.179 -1.168 3.14 -1.5 1.57]
+
+# [-0.26 0.011 -1.14 2.42 1.02 1.57]
+# [-0.268 -0.067 -1.179 2.42 1.164 1.57]
+# close gripper
+# [-0.4365 0.20149 -1.3246 2.423 1.1194 2.5558]
+# [-0.624478 0.167910 -1.358209 3.005672 0.716418 3.809596]
+
 
