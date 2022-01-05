@@ -76,13 +76,13 @@ def attach_needle(needle, link):
         # we need to move the needle based on the Pose of the toolyawlink.
         # The yawlink's n direction faces the grasp
         # position. Therefore, lets add a small offset to the P of yawlink.
-        y_offset = Vector(0, -0.09, 0)
+        y_offset = Vector(-0.08, -0.1, 0)
         P_nINw = P_tINw + R_tINw * y_offset
 
         # If you want to rotate the needle to a certain relative orientation
         # add another Rotation and multiply on the R.H.S of R_tINw in the
         # Equation below.
-        R_nINw = R_tINw * Rotation.RPY(0, 0, 3.14)
+        R_nINw = R_tINw * Rotation.RPY(-1.57079, 0, 3.14)
 
         needle.set_pos(P_nINw[0],
                        P_nINw[1],
