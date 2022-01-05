@@ -92,7 +92,8 @@ while not rospy.is_shutdown():
     while not valid_key:
         key = input("Press: \n"
                     '1 - change x coordinate \n'
-                    '2 - close the jaw \n')
+                    '2 - close the jaw \n'
+                    '3 - pick up the needle and point it towards the entry')
 
         try:
             key = int(key)
