@@ -15,6 +15,7 @@ class RobotData:
         self.measured_cp = TransformStamped()
         self.measured_jaw_jp = JointState()
 
+
 robData = RobotData()
 
 
@@ -24,6 +25,7 @@ def measured_js_cb(msg):
 
 def measured_cp_cb(msg):
     robData.measured_cp = msg
+
 
 def measured_jaw_jp(msg):
     robData.measured_jaw_jp = msg
@@ -106,15 +108,18 @@ while not rospy.is_shutdown():
         else:
             print("Invalid Entry")
         if key == 1:
-            servo_cp_msg.transform.translation.x = float(input('type the x value you want \n'))
+            servo_cp_msg.transform.translation.x = float(
+                input('type the x value you want \n'))
             print('changed x \n')
-            servo_cp_msg.transform.translation.y = float(input('type the y value you want \n'))
+            servo_cp_msg.transform.translation.y = float(
+                input('type the y value you want \n'))
             print('changed y \n')
-            servo_cp_msg.transform.translation.z = float(input('type the z value you want \n'))
+            servo_cp_msg.transform.translation.z = float(
+                input('type the z value you want \n'))
             print('changed z \n')
 
         if key == 2:
-        # use attach_needle.py
+            # use attach_needle.py
             servo_jaw_pub.publish(servo_jaw_angle_open)
             c = Client('attach_needle')
             c.connect()
@@ -160,6 +165,7 @@ while not rospy.is_shutdown():
 
 # world coordinate position
 # [0.559 0.179 -1.168 3.14 -1.5 1.57]
+
 
 # [-0.26 0.011 -1.14 2.42 1.02 1.57]
 # [-0.268 -0.067 -1.179 2.42 1.164 1.57]
