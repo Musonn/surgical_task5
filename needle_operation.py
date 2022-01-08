@@ -1,6 +1,7 @@
 from utils.attach_needle import attach_needle
 from ambf_client import Client
 import psm_arm
+import scene
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 import rospy
@@ -154,6 +155,35 @@ while not rospy.is_shutdown():
             set_servo_cp(s4)
             servo_cp_pub.publish(servo_cp_msg)
             time.sleep(6)
+
+            # get the position of any entry
+            c = Client('get_scene')
+            c.connect()
+            sc_obj = scene.Scene(c)
+            # print pose of entry 1
+            print('pose of entry 1')
+            print(sc_obj.entry1_measured_cp())
+            # print pose of entry 2
+            print('pose of entry 2')
+            print(sc_obj.entry2_measured_cp())
+            # print pose of entry 3
+            print('pose of entry 3')
+            print(sc_obj.entry3_measured_cp())
+            # print pose of entry 4
+            print('pose of entry 4')
+            print(sc_obj.entry4_measured_cp())
+            # print pose of exit 1
+            print('pose of exit 1')
+            print(sc_obj.exit1_measured_cp())
+            # print pose of exit 2
+            print('pose of exit 2')
+            print(sc_obj.exit2_measured_cp())
+            # print pose of exit 3
+            print('pose of exit 3')
+            print(sc_obj.exit3_measured_cp())
+            # print pose of exit 4
+            print('pose of exit 4')
+            print(sc_obj.exit4_measured_cp())
 
         servo_cp_pub.publish(servo_cp_msg)
         time.sleep(0.1)
