@@ -8,7 +8,7 @@ import rospy
 from PyKDL import Rotation
 import time
 import keyboard
-
+from launch_crtk_interface import SceneManager, Options
 
 class RobotData:
     def __init__(self):
@@ -184,6 +184,20 @@ while not rospy.is_shutdown():
             # print pose of exit 4
             print('pose of exit 4')
             print(sc_obj.exit4_measured_cp())
+
+            print('----------------------------------------------------------')
+            # call publish_cs() in the scene manager
+            options = Options()
+            options.run_psm_one = False
+            options.run_psm_two = False
+            options.run_psm_three = False
+            options.run_ecm = False
+            options.run_scene = True
+            options.rate = 120
+
+            sceneManager = SceneManager(options)
+            sceneManager.run()
+
 
         servo_cp_pub.publish(servo_cp_msg)
         time.sleep(0.1)
