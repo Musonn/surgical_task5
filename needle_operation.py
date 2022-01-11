@@ -186,6 +186,7 @@ while not rospy.is_shutdown():
             print(sc_obj.exit4_measured_cp())
 
             print('----------------------------------------------------------')
+            
             # call publish_cs() in the scene manager
             options = Options()
             options.run_psm_one = False
