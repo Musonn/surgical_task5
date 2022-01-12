@@ -5,7 +5,7 @@ import scene
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 import rospy
-from PyKDL import Rotation
+from PyKDL import Rotation, Vector, Frame
 import time
 import keyboard
 from launch_crtk_interface import SceneManager, Options
@@ -15,6 +15,7 @@ class RobotData:
         self.measured_js = JointState()
         self.measured_cp = TransformStamped()
         self.measured_jaw_jp = JointState()
+
 
 robData = RobotData()
 
@@ -44,6 +45,29 @@ def set_servo_cp(state):
     servo_cp_msg.transform.rotation.w = R_0.GetQuaternion()[3]
     return servo_cp_msg
 
+def set_servo_cp_2(frame):
+    '''  set the position of the arm by a frame.'''
+    x,y,z= frame.p
+    servo_cp_msg.transform.translation.x = x
+    servo_cp_msg.transform.translation.y = y
+    servo_cp_msg.transform.translation.z = z
+
+    servo_cp_msg.transform.rotation.x = R.GetQuaternion()[0]
+    servo_cp_msg.transform.rotation.y = R.GetQuaternion()[1]
+    servo_cp_msg.transform.rotation.z = R.GetQuaternion()[2]
+    servo_cp_msg.transform.rotation.w = R.GetQuaternion()[3]
+    return servo_cp_msg
+
+def transform_to_frame(R, p):
+    '''
+    R is a one dimensional list representing Xx, Yx, Zx, Xy, Yy, Zy, Xz, Yz, Zz; p is a list of x, y, z
+    see more at http://docs.ros.org/en/diamondback/api/kdl/html/python/geometric_primitives.html#PyKDL.Rotation
+    '''
+    Xx, Yx, Zx, Xy, Yy, Zy, Xz, Yz, Zz = R
+    x,y,z = p
+    frame = Frame(Rotation(Xx, Yx, Zx, Xy, Yy, Zy, Xz, Yz, Zz), Vector(x,y,z))
+
+    return frame
 
 rospy.init_node("sur_chal_crtk_test")
 
@@ -93,8 +117,9 @@ while not rospy.is_shutdown():
     while not valid_key:
         key = input("Press: \n"
                     '1 - change x coordinate \n'
-                    '2 - close the jaw \n'
-                    '3 - pick up the needle and point it towards the entry')
+                    '2 - supposely move to ... \n'
+                    '3 - pick up the needle and point it towards the entry \n'
+                    '4 - print locations of entries and exits in world frame \n')
 
         try:
             key = int(key)
@@ -115,20 +140,35 @@ while not rospy.is_shutdown():
             print('changed z \n')
 
         if key == 2:
-        # use attach_needle.py
-            servo_jaw_pub.publish(servo_jaw_angle_open)
-            c = Client('attach_needle')
-            c.connect()
-            # create psm arm
-            # arm1 = psm_arm.PSM(c, 'arm1')
-            needle = c.get_obj_handle('Needle')
-            link1 = c.get_obj_handle('psm1' + '/toolyawlink')
-            attach_needle(needle, link1)
-            # arm1.run_grasp_logic(0.1)
-            time.sleep(0.5)
-            servo_jaw_pub.publish(servo_jaw_angle_closed)
-            c.clean_up()
-        
+                # entry 1 position in blender
+                entry1_state = [-0.0748, 0.4419, 0.7601, 3.14, 0, 1.57]
+                x,y,z,r,p,yaw = entry1_state
+                # covert it from world to base
+                # state object to frame object
+                P = Vector(x,y,z)
+                R = Rotation.RPY(r,p,yaw)
+                entry1_frame = Frame(R, P)
+
+                # transfomation matrix - method 1
+                T_w_b_M = Rotation(-0.866025,-2.29807e-06,-0.500001, -0.32138,   -0.766066,    0.556649, -0.383035,    0.642762,    0.663431)
+                T_w_b_P = Vector(    -0.19107,  -0.0415998,    -2.14382)
+                T_w_b = Frame(T_w_b_M, T_w_b_P)
+                
+                # transformation matrix - method 2
+                above_needle_location = transform_to_frame([0.99955, 0.000893099,   0.0299795,
+                                        1.6103e-05,     0.99954,  -0.0303135,  
+                                        -0.0299928,   0.0303003,    0.999091], [-0.207883,     0.56198,    0.711725+0.09])
+                
+                another_key = input('1 - ... entry 1 \n'
+                                    '2 - ... above needle \n')
+
+                if another_key == 1: target_pose = T_w_b * above_needle_location
+                if another_key == 2: target_pose = T_w_b * entry1_frame
+                
+                # move the arm to it
+                set_servo_cp_2(target_pose)
+                servo_cp_pub.publish(servo_cp_msg)
+
         if key == 3:
             # grasp needle and point towards the entry
 
@@ -156,6 +196,7 @@ while not rospy.is_shutdown():
             servo_cp_pub.publish(servo_cp_msg)
             time.sleep(6)
 
+        if key == 4:
             # get the position of any entry
             c = Client('get_scene')
             c.connect()
