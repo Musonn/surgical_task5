@@ -52,6 +52,7 @@ def set_servo_cp_2(frame):
     servo_cp_msg.transform.translation.y = y
     servo_cp_msg.transform.translation.z = z
 
+    R = frame.M
     servo_cp_msg.transform.rotation.x = R.GetQuaternion()[0]
     servo_cp_msg.transform.rotation.y = R.GetQuaternion()[1]
     servo_cp_msg.transform.rotation.z = R.GetQuaternion()[2]
@@ -110,6 +111,12 @@ servo_cp_msg.transform.rotation.y = R_7_0.GetQuaternion()[1]
 servo_cp_msg.transform.rotation.z = R_7_0.GetQuaternion()[2]
 servo_cp_msg.transform.rotation.w = R_7_0.GetQuaternion()[3]
 
+# find transformations between world and base
+c=Client('blah')
+c.connect()
+psm2 = psm_arm.PSM(c, 'psm2')
+T_w_b = psm2.get_T_w_b()
+c.clean_up()
 
 while not rospy.is_shutdown():
     valid_key = False
@@ -140,30 +147,23 @@ while not rospy.is_shutdown():
             print('changed z \n')
 
         if key == 2:
-                # entry 1 position in blender
-                entry1_state = [-0.0748, 0.4419, 0.7601, 3.14, 0, 1.57]
-                x,y,z,r,p,yaw = entry1_state
-                # covert it from world to base
-                # state object to frame object
-                P = Vector(x,y,z)
-                R = Rotation.RPY(r,p,yaw)
-                entry1_frame = Frame(R, P)
+                another_key = int(input('1 - ... entry 1 \n'
+                                    '2 - ... above needle \n'))
 
-                # transfomation matrix - method 1
-                T_w_b_M = Rotation(-0.866025,-2.29807e-06,-0.500001, -0.32138,   -0.766066,    0.556649, -0.383035,    0.642762,    0.663431)
-                T_w_b_P = Vector(    -0.19107,  -0.0415998,    -2.14382)
-                T_w_b = Frame(T_w_b_M, T_w_b_P)
-                
-                # transformation matrix - method 2
-                above_needle_location = transform_to_frame([0.99955, 0.000893099,   0.0299795,
-                                        1.6103e-05,     0.99954,  -0.0303135,  
-                                        -0.0299928,   0.0303003,    0.999091], [-0.207883,     0.56198,    0.711725+0.09])
-                
-                another_key = input('1 - ... entry 1 \n'
-                                    '2 - ... above needle \n')
-
-                if another_key == 1: target_pose = T_w_b * above_needle_location
-                if another_key == 2: target_pose = T_w_b * entry1_frame
+                if another_key == 1:
+                    # entry 1 position in blender
+                    entry1_state = [-0.0748, 0.4419, 0.7601, 3.14, 0, 1.57]
+                    x,y,z,r,p,yaw = entry1_state
+                    # covert it from world to base
+                    # state object to frame object
+                    P = Vector(x,y,z)
+                    R = Rotation.RPY(r,p,yaw)
+                    entry1_frame = Frame(R, P)
+                    target_pose = T_w_b * entry1_frame
+                if another_key == 2:
+                    above_needle_location = Frame( Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
+                    target_pose = T_w_b * above_needle_location
+                    target_pose.M = Rotation.RPY(2.42,1.02,1.57)    # data from s1
                 
                 # move the arm to it
                 set_servo_cp_2(target_pose)
