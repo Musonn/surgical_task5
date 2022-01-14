@@ -163,9 +163,9 @@ while not rospy.is_shutdown():
                 if another_key == 2:
                     above_needle_center = Frame(Rotation(0.99955, 0.000893099,   0.0299795, 1.6103e-05,     0.99954,  -0.0303135, -0.0299928,   0.0303003,    0.999091),
                                                 Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
-                    target_pose = Frame( Rotation.RPY(0, -3.14, 0.5 * 3.14) * above_needle_center.M, above_needle_center.p + above_needle_center.M * Vector(-0.10253, 0.03, 0.05)) # expression from HUiyun_script.py
+                    T_center_tail = Frame(Rotation.RPY(0, -3.14, 0.5 * 3.14), Vector(-0.10253, 0.03, 0.05)) # data from HUiyun_script.py
+                    target_pose = above_needle_center * T_center_tail
                     target_pose = T_w_b * target_pose
-                    # target_pose.M = Rotation.RPY(2.42,1.02,1.57)    # data from s1
 
                 # move the arm to it
                 set_servo_cp_2(target_pose)
@@ -177,7 +177,8 @@ while not rospy.is_shutdown():
             # here are the hard-code states
             above_needle_center = Frame(Rotation(0.99955, 0.000893099,   0.0299795, 1.6103e-05,     0.99954,  -0.0303135, -0.0299928,   0.0303003,    0.999091),
                                         Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
-            above_needle_tail = Frame( Rotation.RPY(0, -3.14, 0.5 * 3.14) * above_needle_center.M, above_needle_center.p + above_needle_center.M * Vector(-0.10253, 0.03, 0.05)) # expression from HUiyun_script.py
+            T_center_tail = Frame(Rotation.RPY(0, -3.14, 0.5 * 3.14), Vector(-0.10253, 0.03, 0.05)) # data from HUiyun_script.py
+            above_needle_tail = above_needle_center * T_center_tail
             s1 = T_w_b * above_needle_tail
 
             needle_tail = above_needle_tail
