@@ -161,10 +161,12 @@ while not rospy.is_shutdown():
                     entry1_frame = Frame(R, P)
                     target_pose = T_w_b * entry1_frame
                 if another_key == 2:
-                    above_needle_location = Frame( Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
-                    target_pose = T_w_b * above_needle_location
-                    target_pose.M = Rotation.RPY(2.42,1.02,1.57)    # data from s1
-                
+                    above_needle_center = Frame(Rotation(0.99955, 0.000893099,   0.0299795, 1.6103e-05,     0.99954,  -0.0303135, -0.0299928,   0.0303003,    0.999091),
+                                                Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
+                    target_pose = Frame( Rotation.RPY(0, -3.14, 0.5 * 3.14) * above_needle_center.M, above_needle_center.p + above_needle_center.M * Vector(-0.10253, 0.03, 0.05)) # expression from HUiyun_script.py
+                    target_pose = T_w_b * target_pose
+                    # target_pose.M = Rotation.RPY(2.42,1.02,1.57)    # data from s1
+
                 # move the arm to it
                 set_servo_cp_2(target_pose)
                 servo_cp_pub.publish(servo_cp_msg)
@@ -173,18 +175,24 @@ while not rospy.is_shutdown():
             # grasp needle and point towards the entry
 
             # here are the hard-code states
-            s1 = [-0.26,0.011,-1.14,2.42,1.02,1.57]
-            s2 = [-0.268,-0.067,-1.179,2.42,1.164,1.57]
-            
+            above_needle_center = Frame(Rotation(0.99955, 0.000893099,   0.0299795, 1.6103e-05,     0.99954,  -0.0303135, -0.0299928,   0.0303003,    0.999091),
+                                        Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
+            above_needle_tail = Frame( Rotation.RPY(0, -3.14, 0.5 * 3.14) * above_needle_center.M, above_needle_center.p + above_needle_center.M * Vector(-0.10253, 0.03, 0.05)) # expression from HUiyun_script.py
+            s1 = T_w_b * above_needle_tail
+
+            needle_tail = above_needle_tail
+            needle_tail.p += Vector(0,0, -0.09)
+            s2 = T_w_b * needle_tail
+
             s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
             s4 = [-0.6,0.167910,-1.358209,3.005672,0.716418,3.809596]
             
             servo_jaw_pub.publish(servo_jaw_angle_open)
             time.sleep(1)
-            servo_cp_msg = set_servo_cp(s1)
+            servo_cp_msg = set_servo_cp_2(s1)
             servo_cp_pub.publish(servo_cp_msg)
             time.sleep(5)
-            set_servo_cp(s2)
+            set_servo_cp_2(s2)
             servo_cp_pub.publish(servo_cp_msg)
             time.sleep(6)
             servo_jaw_pub.publish(servo_jaw_angle_closed)
@@ -247,10 +255,23 @@ while not rospy.is_shutdown():
 # world coordinate position
 # [0.559 0.179 -1.168 3.14 -1.5 1.57]
 
-# [-0.26 0.011 -1.14 2.42 1.02 1.57]
-# [-0.268 -0.067 -1.179 2.42 1.164 1.57]
-# close gripper
-# [-0.4365 0.20149 -1.3246 2.423 1.1194 2.5558]
-# [-0.624478 0.167910 -1.358209 3.005672 0.716418 3.809596]
+# position: [0.9388150572776794, -0.8624297976493835, -7.284080538738635e-07, -2.1081840991973877, -1.5711891651153564, 0.1948612481355667]
+# velocity: [1.9089757188339718e-06, -1.957461608981248e-05, 6.901156552885368e-07, 1.0777608156204224, -4.375037315185182e-05, -1.391890525817871]
+# effort: []
+# ------------------------------------
+# measured_cp:  translation: 
+#   x: -0.17486074581098204
+#   y: -0.2271024949728268
+#   z: -0.09153860265431155
+# rotation: 
+#   x: -0.43954491763127124
+#   y: 0.8729602253467024
+#   z: -0.0192643795399843
+#   w: -0.2106409125219813
+
+# [[  0.00041677,    0.751203,    0.660072;
+#      0.523366,    0.562289,    -0.64025;
+#     -0.852108,    0.345726,   -0.392919]
+# [   -0.366903, -0.00912285,     -1.2308]]
 
 
