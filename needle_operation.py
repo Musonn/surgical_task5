@@ -148,7 +148,7 @@ while not rospy.is_shutdown():
 
         if key == 2:
                 another_key = int(input('1 - ... entry 1 \n'
-                                    '2 - ... above needle \n'))
+                                    '2 - ... above needle tip \n'))
 
                 if another_key == 1:
                     # entry 1 position in blender
@@ -165,8 +165,13 @@ while not rospy.is_shutdown():
                                                 Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
                     T_center_tail = Frame(Rotation.RPY(0, -3.14, 0.5 * 3.14), Vector(-0.10253, 0.03, 0.05)) # data from HUiyun_script.py
                     target_pose = above_needle_center * T_center_tail
-                    target_pose = T_w_b * target_pose
 
+                    r = 0.10253
+                    T1 = Frame(Vector(0, -r, 0))
+                    T2 = Frame(Vector( -r * 0.86602540378, -r * 0.5, 0)) # cos(pi/6) and sin(pi/6)
+                    target_pose = target_pose * T1 *T2
+                    target_pose.p += Vector(0, 0, -0.09)
+                    target_pose = T_w_b * target_pose
                 # move the arm to it
                 set_servo_cp_2(target_pose)
                 servo_cp_pub.publish(servo_cp_msg)
@@ -182,11 +187,33 @@ while not rospy.is_shutdown():
             s1 = T_w_b * above_needle_tail
 
             needle_tail = above_needle_tail
-            needle_tail.p += Vector(0,0, -0.09)
+            needle_tail.p += Vector(0, 0, -0.09)
             s2 = T_w_b * needle_tail
 
-            s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
-            s4 = [-0.6,0.167910,-1.358209,3.005672,0.716418,3.809596]
+
+
+
+            # s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
+            s3 = [-0.6,0.167910,-1.358209,3.005672,0.716418,3.809596]
+
+            # get transformation
+            r = 0.10253
+            T1 = Frame(Vector(0, -r, 0))
+            T2 = Frame(Vector(-r * 0.86602540378, -r * 0.5, 0)) # cos(pi/6) and sin(pi/6)
+
+            # entry 1 position in blender
+            entry1_state = [-0.0373985, 0.441891, 0.750042, 3.14, 0, 1.57]
+            x,y,z,r,p,yaw = entry1_state
+            # covert it from world to base
+            # state object to frame object
+            P = Vector(x,y,z)
+            R = Rotation.RPY(r,p,yaw)
+            entry1_frame = Frame(R, P)
+            target_pose = (entry1_frame * (T1 * T2).Inverse())
+            s4 = T_w_b * target_pose
+
+            target_pose.M.DoRotZ(-3.14/2)
+            s5 = T_w_b * target_pose
             
             servo_jaw_pub.publish(servo_jaw_angle_open)
             time.sleep(1)
@@ -201,7 +228,10 @@ while not rospy.is_shutdown():
             set_servo_cp(s3)
             servo_cp_pub.publish(servo_cp_msg)
             time.sleep(6)
-            set_servo_cp(s4)
+            set_servo_cp_2(s4)
+            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(3)
+            set_servo_cp_2(s5)
             servo_cp_pub.publish(servo_cp_msg)
             time.sleep(6)
 
