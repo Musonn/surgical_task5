@@ -178,39 +178,35 @@ while not rospy.is_shutdown():
 
         if key == 3:
             # grasp needle and point towards the entry
+            # See README for details about transformations
 
-            # here are the hard-code states
+            '''move to above needle tail'''
             above_needle_center = Frame(Rotation(0.99955, 0.000893099,   0.0299795, 1.6103e-05,     0.99954,  -0.0303135, -0.0299928,   0.0303003,    0.999091),
                                         Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
             T_center_tail = Frame(Rotation.RPY(0, -3.14, 0.5 * 3.14), Vector(-0.10253, 0.03, 0.05)) # data from HUiyun_script.py
             above_needle_tail = above_needle_center * T_center_tail
             s1 = T_w_b * above_needle_tail
 
+            '''pick up the needle'''
             needle_tail = above_needle_tail
-            needle_tail.p += Vector(0, 0, -0.09)
+            needle_tail.p += Vector(0, 0, -0.09) # move down by 0.09
             s2 = T_w_b * needle_tail
 
+            '''go to a transition position'''
             s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
-            # s3 = [-0.6,0.167910,-1.358209,3.005672,0.716418,3.809596]
 
+            '''go to the entry 1'''
             # get transformations from tail to tip. See README for details
             r = 0.10253
             T1 = Frame(Vector(0, -r, 0))
             T2 = Frame(Vector(-r * 0.86602540378, -r * 0.5, 0)) # cos(pi/6) and sin(pi/6)
             T3 = Frame(Rotation.RotZ(-3.14/2))
-
-            # entry 1 position in blender
+            # entry 1 position from key == 4: pose of entry 1
             x = -0.01   # This is the adjustment obtained from trials and errors
-            entry1_state = [-0.0773985 + x, 0.441891, 0.750042, 0,0,0]
-            x,y,z,r,p,yaw = entry1_state
-            P = Vector(x,y,z)
-            entry1_frame = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(-0.0773985 + x, 0.441891))
+            entry1_frame = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(-0.0773985 + x, 0.441891, 0.750042))
             entry1_frame.M = entry1_frame.M.EulerZYX(-3.14/2, 3.14/2, 0)
             target_pose = entry1_frame * (T1 * T2 * T3).Inverse()
             s4 = T_w_b * target_pose
-
-            # target_pose.M.DoRotZ(-3.14/2)
-            # s5 = T_w_b * target_pose
             
             servo_jaw_pub.publish(servo_jaw_angle_open)
             time.sleep(1)
@@ -230,7 +226,7 @@ while not rospy.is_shutdown():
             time.sleep(3)
             # set_servo_cp_2(s5)
             # servo_cp_pub.publish(servo_cp_msg)
-            time.sleep(6)
+            # time.sleep(6)
 
         if key == 4:
             # get the position of any entry
