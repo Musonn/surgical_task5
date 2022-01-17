@@ -190,30 +190,27 @@ while not rospy.is_shutdown():
             needle_tail.p += Vector(0, 0, -0.09)
             s2 = T_w_b * needle_tail
 
+            s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
+            # s3 = [-0.6,0.167910,-1.358209,3.005672,0.716418,3.809596]
 
-
-
-            # s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
-            s3 = [-0.6,0.167910,-1.358209,3.005672,0.716418,3.809596]
-
-            # get transformation
+            # get transformations from tail to tip. See README for details
             r = 0.10253
             T1 = Frame(Vector(0, -r, 0))
             T2 = Frame(Vector(-r * 0.86602540378, -r * 0.5, 0)) # cos(pi/6) and sin(pi/6)
+            T3 = Frame(Rotation.RotZ(-3.14/2))
 
             # entry 1 position in blender
-            entry1_state = [-0.0373985, 0.441891, 0.750042, 3.14, 0, 1.57]
+            x = -0.01   # This is the adjustment obtained from trials and errors
+            entry1_state = [-0.0773985 + x, 0.441891, 0.750042, 0,0,0]
             x,y,z,r,p,yaw = entry1_state
-            # covert it from world to base
-            # state object to frame object
             P = Vector(x,y,z)
-            R = Rotation.RPY(r,p,yaw)
-            entry1_frame = Frame(R, P)
-            target_pose = (entry1_frame * (T1 * T2).Inverse())
+            entry1_frame = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(-0.0773985 + x, 0.441891))
+            entry1_frame.M = entry1_frame.M.EulerZYX(-3.14/2, 3.14/2, 0)
+            target_pose = entry1_frame * (T1 * T2 * T3).Inverse()
             s4 = T_w_b * target_pose
 
-            target_pose.M.DoRotZ(-3.14/2)
-            s5 = T_w_b * target_pose
+            # target_pose.M.DoRotZ(-3.14/2)
+            # s5 = T_w_b * target_pose
             
             servo_jaw_pub.publish(servo_jaw_angle_open)
             time.sleep(1)
@@ -222,17 +219,17 @@ while not rospy.is_shutdown():
             time.sleep(5)
             set_servo_cp_2(s2)
             servo_cp_pub.publish(servo_cp_msg)
-            time.sleep(6)
+            time.sleep(3)
             servo_jaw_pub.publish(servo_jaw_angle_closed)
             time.sleep(6)
             set_servo_cp(s3)
             servo_cp_pub.publish(servo_cp_msg)
-            time.sleep(6)
+            time.sleep(3)
             set_servo_cp_2(s4)
             servo_cp_pub.publish(servo_cp_msg)
             time.sleep(3)
-            set_servo_cp_2(s5)
-            servo_cp_pub.publish(servo_cp_msg)
+            # set_servo_cp_2(s5)
+            # servo_cp_pub.publish(servo_cp_msg)
             time.sleep(6)
 
         if key == 4:
@@ -286,24 +283,16 @@ while not rospy.is_shutdown():
 # world coordinate position
 # [0.559 0.179 -1.168 3.14 -1.5 1.57]
 
-# position: [0.9388150572776794, -0.8624297976493835, -7.284080538738635e-07, -2.1081840991973877, -1.5711891651153564, 0.1948612481355667]
-# velocity: [1.9089757188339718e-06, -1.957461608981248e-05, 6.901156552885368e-07, 1.0777608156204224, -4.375037315185182e-05, -1.391890525817871]
-# effort: []
-# ------------------------------------
-# measured_cp:  translation: 
-#   x: -0.17486074581098204
-#   y: -0.2271024949728268
-#   z: -0.09153860265431155
-# rotation: 
-#   x: -0.43954491763127124
-#   y: 0.8729602253467024
-#   z: -0.0192643795399843
-#   w: -0.2106409125219813
-
+# entry 1
 # [[    0.692862, 0,    -0.72107;
 #  0,           1, 0;
 #       0.72107,0 ,    0.692862]
 # [  -0.0373985,    0.441891,    0.750042]]
 
+# pose of exit 1
+# [[    0.692862,-3.11694e-21,     0.72107;
+#   2.15961e-21,           1, 2.24753e-21;
+#      -0.72107, 1.07205e-35,    0.692862]
+# [   0.0407746,     0.44189,    0.748603]]
 
 
