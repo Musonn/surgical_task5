@@ -126,7 +126,7 @@ T1 = Frame(Vector(0, -r, 0))
 T2 = Frame(Vector(-r * 0.86602540378, -r * 0.5, 0)) # cos(pi/6) and sin(pi/6)
 T3 = Frame(Rotation.RotZ(-3.14/2))
 x = -0.01   # This is the adjustment obtained from trials and errors
-entry1_frame = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(-0.0773985 + x, 0.441891, 0.750042))
+entry1_frame = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(-0.0373985 + x, 0.441891, 0.750042))
 entry1_frame.M = entry1_frame.M.EulerZYX(-3.14/2, 3.14/2, 0)
 
 # suture function
