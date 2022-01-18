@@ -1,3 +1,4 @@
+from ctypes.wintypes import MSG
 from utils.attach_needle import attach_needle
 from ambf_client import Client
 import psm_arm
@@ -118,6 +119,25 @@ psm2 = psm_arm.PSM(c, 'psm2')
 T_w_b = psm2.get_T_w_b()
 c.clean_up()
 
+# global var
+# get transformations from tail to tip. See README for details
+r = 0.10253
+T1 = Frame(Vector(0, -r, 0))
+T2 = Frame(Vector(-r * 0.86602540378, -r * 0.5, 0)) # cos(pi/6) and sin(pi/6)
+T3 = Frame(Rotation.RotZ(-3.14/2))
+x = -0.01   # This is the adjustment obtained from trials and errors
+entry1_frame = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(-0.0773985 + x, 0.441891, 0.750042))
+entry1_frame.M = entry1_frame.M.EulerZYX(-3.14/2, 3.14/2, 0)
+
+# suture function
+global suture_r
+def suture_r(entry_frame, angle):
+    circle_center = entry_frame * (T2 * T3).Inverse()
+    # rotate around z. See README for coordinate
+    circle_center.M.DoRotZ(float(angle))
+    target_pose = circle_center * T1.Inverse()
+    return T_w_b * target_pose
+
 while not rospy.is_shutdown():
     valid_key = False
     key = None
@@ -148,7 +168,8 @@ while not rospy.is_shutdown():
 
         if key == 2:
                 another_key = int(input('1 - ... entry 1 \n'
-                                    '2 - ... above needle tip \n'))
+                                    '2 - ... above needle tip \n'
+                                    '3 - ... rotate at the entry 1 ONLY \n'))
 
                 if another_key == 1:
                     # entry 1 position in blender
@@ -166,12 +187,16 @@ while not rospy.is_shutdown():
                     T_center_tail = Frame(Rotation.RPY(0, -3.14, 0.5 * 3.14), Vector(-0.10253, 0.03, 0.05)) # data from HUiyun_script.py
                     target_pose = above_needle_center * T_center_tail
 
-                    r = 0.10253
-                    T1 = Frame(Vector(0, -r, 0))
-                    T2 = Frame(Vector( -r * 0.86602540378, -r * 0.5, 0)) # cos(pi/6) and sin(pi/6)
                     target_pose = target_pose * T1 *T2
                     target_pose.p += Vector(0, 0, -0.09)
                     target_pose = T_w_b * target_pose
+                if another_key == 3:
+                    circle_center = entry1_frame * (T2 * T3).Inverse()
+                    # rotate by -90 deg around z
+                    circle_center.M.DoRotZ(float(input()))
+                    target_pose = circle_center * T1.Inverse()
+                    target_pose = T_w_b * target_pose
+
                 # move the arm to it
                 set_servo_cp_2(target_pose)
                 servo_cp_pub.publish(servo_cp_msg)
@@ -196,15 +221,8 @@ while not rospy.is_shutdown():
             s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
 
             '''go to the entry 1'''
-            # get transformations from tail to tip. See README for details
-            r = 0.10253
-            T1 = Frame(Vector(0, -r, 0))
-            T2 = Frame(Vector(-r * 0.86602540378, -r * 0.5, 0)) # cos(pi/6) and sin(pi/6)
-            T3 = Frame(Rotation.RotZ(-3.14/2))
             # entry 1 position from key == 4: pose of entry 1
-            x = -0.01   # This is the adjustment obtained from trials and errors
-            entry1_frame = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(-0.0773985 + x, 0.441891, 0.750042))
-            entry1_frame.M = entry1_frame.M.EulerZYX(-3.14/2, 3.14/2, 0)
+
             target_pose = entry1_frame * (T1 * T2 * T3).Inverse()
             s4 = T_w_b * target_pose
             
@@ -224,9 +242,22 @@ while not rospy.is_shutdown():
             set_servo_cp_2(s4)
             servo_cp_pub.publish(servo_cp_msg)
             time.sleep(3)
-            # set_servo_cp_2(s5)
-            # servo_cp_pub.publish(servo_cp_msg)
-            # time.sleep(6)
+
+            set_servo_cp_2(suture_r(entry1_frame, 0.3))
+            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(1)
+            set_servo_cp_2(suture_r(entry1_frame, 0.6))
+            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(1)
+            set_servo_cp_2(suture_r(entry1_frame, 1))
+            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(1)
+            set_servo_cp_2(suture_r(entry1_frame, 1.5))
+            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(1)
+            set_servo_cp_2(suture_r(entry1_frame, 2.2))
+            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(1)
 
         if key == 4:
             # get the position of any entry
