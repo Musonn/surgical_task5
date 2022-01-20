@@ -125,9 +125,14 @@ r = 0.10253
 T1 = Frame(Vector(0, -r, 0))
 T2 = Frame(Vector(-r * 0.86602540378, -r * 0.5, 0)) # cos(pi/6) and sin(pi/6)
 T3 = Frame(Rotation.RotZ(-3.14/2))
-x = -0.01   # This is the adjustment obtained from trials and errors
-entry1_frame = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(-0.0373985 + x, 0.441891, 0.750042))
+x = -0.02   # This is the adjustment obtained from trials and errors
+z = x * 1.03 # tan(46.1 deg)
+entry1_frame = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(-0.0373985 + x, 0.441891, 0.750042 + z)) # data from key == 4
 entry1_frame.M = entry1_frame.M.EulerZYX(-3.14/2, 3.14/2, 0)
+exit1_frame = Frame(Rotation(0.692862, 0,     0.72107, 0, 1, 0, -0.72107, 0, 0.692862), Vector(0.0407746,     0.44189,    0.748603 )) # data from key == 4
+# exit1_frame.M = exit1_frame.M.EulerZYX( 0, -3.14/2, 3.14/2)
+exit1_frame.M = exit1_frame.M.RPY( 3.14/2, 0, 0)
+圆心 = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(0.002, 0.442, 0.791))
 
 # suture function
 global suture_r
@@ -159,28 +164,29 @@ while not rospy.is_shutdown():
         else:
             print("Invalid Entry")
         if key == 1:
-            servo_cp_msg.transform.translation.x = float(input('type the x value you want \n'))
+            x = float(input('type the x value you want \n'))
             print('changed x \n')
-            servo_cp_msg.transform.translation.y = float(input('type the y value you want \n'))
+            y = float(input('type the y value you want \n'))
             print('changed y \n')
-            servo_cp_msg.transform.translation.z = float(input('type the z value you want \n'))
+            z = float(input('type the z value you want \n'))
             print('changed z \n')
+            temp = Frame(Vector(x,y,z))
+            temp = T_w_b * temp
+            servo_cp_msg.transform.translation.x = temp.p.x()
+            servo_cp_msg.transform.translation.y = temp.p.y()
+            servo_cp_msg.transform.translation.z = temp.p.z()
 
         if key == 2:
-                another_key = int(input('1 - ... entry 1 \n'
+                another_key = int(input('1 - ... exit 1 w/ needle \n'
                                     '2 - ... above needle tip \n'
-                                    '3 - ... rotate at the entry 1 ONLY \n'))
+                                    '3 - ... rotate at the entry 1 ONLY \n'
+                                    '4 - ... rotate at the exit 1 ONLY \n'
+                                    '5 - ... rotate around the center ONLY \n'))
 
                 if another_key == 1:
-                    # entry 1 position in blender
-                    entry1_state = [-0.0373985, 0.441891, 0.750042, 3.14, 0, 1.57]
-                    x,y,z,r,p,yaw = entry1_state
-                    # covert it from world to base
-                    # state object to frame object
-                    P = Vector(x,y,z)
-                    R = Rotation.RPY(r,p,yaw)
-                    entry1_frame = Frame(R, P)
-                    target_pose = T_w_b * entry1_frame
+                    target_pose = exit1_frame * (T1 * T2 * T3).Inverse()
+                    target_pose = T_w_b * target_pose
+
                 if another_key == 2:
                     above_needle_center = Frame(Rotation(0.99955, 0.000893099,   0.0299795, 1.6103e-05,     0.99954,  -0.0303135, -0.0299928,   0.0303003,    0.999091),
                                                 Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
@@ -192,9 +198,21 @@ while not rospy.is_shutdown():
                     target_pose = T_w_b * target_pose
                 if another_key == 3:
                     circle_center = entry1_frame * (T2 * T3).Inverse()
-                    # rotate by -90 deg around z
+                    # rotate by deg around z
                     circle_center.M.DoRotZ(float(input()))
                     target_pose = circle_center * T1.Inverse()
+                    target_pose = T_w_b * target_pose
+                if another_key == 4:
+                    circle_center = exit1_frame * (T2 * T3).Inverse()
+                    # rotate by deg around z
+                    circle_center.M.DoRotZ(float(input()))
+                    target_pose = circle_center * T1.Inverse()
+                    target_pose = T_w_b * target_pose
+                if another_key == 5:
+                    T4 = Frame(Vector(0.002+0.037, 0, 0.041))
+                    # rotate by deg around z
+                    圆心.M.DoRotZ(float(input()))
+                    target_pose = 圆心 * T4  * (T1 * T2 * T3).Inverse()
                     target_pose = T_w_b * target_pose
 
                 # move the arm to it
@@ -238,10 +256,10 @@ while not rospy.is_shutdown():
             time.sleep(6)
             set_servo_cp(s3)
             servo_cp_pub.publish(servo_cp_msg)
-            time.sleep(3)
+            time.sleep(6)
             set_servo_cp_2(s4)
             servo_cp_pub.publish(servo_cp_msg)
-            time.sleep(3)
+            time.sleep(6)
 
             set_servo_cp_2(suture_r(entry1_frame, 0.3))
             servo_cp_pub.publish(servo_cp_msg)
@@ -252,10 +270,13 @@ while not rospy.is_shutdown():
             set_servo_cp_2(suture_r(entry1_frame, 1))
             servo_cp_pub.publish(servo_cp_msg)
             time.sleep(1)
-            set_servo_cp_2(suture_r(entry1_frame, 1.5))
+            set_servo_cp_2(suture_r(exit1_frame, -0.5))
             servo_cp_pub.publish(servo_cp_msg)
             time.sleep(1)
-            set_servo_cp_2(suture_r(entry1_frame, 2.2))
+            set_servo_cp_2(suture_r(exit1_frame, -0.1))
+            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(1)
+            set_servo_cp_2(suture_r(exit1_frame, 0.2))
             servo_cp_pub.publish(servo_cp_msg)
             time.sleep(1)
 
@@ -317,9 +338,7 @@ while not rospy.is_shutdown():
 # [  -0.0373985,    0.441891,    0.750042]]
 
 # pose of exit 1
-# [[    0.692862,-3.11694e-21,     0.72107;
-#   2.15961e-21,           1, 2.24753e-21;
-#      -0.72107, 1.07205e-35,    0.692862]
+# [[    0.692862, 0,     0.72107;
+#   0,           1, 0;
+#      -0.72107, 0,    0.692862]
 # [   0.0407746,     0.44189,    0.748603]]
-
-
