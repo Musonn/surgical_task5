@@ -132,7 +132,7 @@ entry1_frame.M = entry1_frame.M.EulerZYX(-3.14/2, 3.14/2, 0)
 exit1_frame = Frame(Rotation(0.692862, 0,     0.72107, 0, 1, 0, -0.72107, 0, 0.692862), Vector(0.0407746,     0.44189,    0.748603 )) # data from key == 4
 # exit1_frame.M = exit1_frame.M.EulerZYX( 0, -3.14/2, 3.14/2)
 exit1_frame.M = exit1_frame.M.RPY( 3.14/2, 0, 0)
-圆心 = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(0.002, 0.442, 0.791))
+CC = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(0.002, 0.442, 0.791))
 
 # suture function
 global suture_r
@@ -211,8 +211,9 @@ while not rospy.is_shutdown():
                 if another_key == 5:
                     T4 = Frame(Vector(0.002+0.037, 0, 0.041))
                     # rotate by deg around z
-                    圆心.M.DoRotZ(float(input()))
-                    target_pose = 圆心 * T4  * (T1 * T2 * T3).Inverse()
+                
+                CC.M.DoRotZ(float(input()))
+                    target_pose =CC * T4  * (T1 * T2 * T3).Inverse()
                     target_pose = T_w_b * target_pose
 
                 # move the arm to it
