@@ -12,6 +12,7 @@ import keyboard
 from launch_crtk_interface import SceneManager, Options
 import roboticstoolbox as rtb
 from spatialmath import SE3
+import posemath
 
 class RobotData:
     def __init__(self):
@@ -146,7 +147,16 @@ def suture_r(entry_frame, angle):
     return T_w_b * target_pose
 
 # trajectory planning function
-
+def move_cp(T0,T1,s):
+    tj = rtb.ctraj(T0, T1, s)
+    # tj = posemath.fromMatrix(tg[0])
+    for _SE3 in tj:
+        _array = _SE3.A
+        print(type(_array))
+        _frame = posemath.fromMatrix(_array)
+        set_servo_cp_2(_frame)
+        servo_cp_pub.publish(servo_cp_msg)
+        time.sleep(0.05)
 
 while not rospy.is_shutdown():
     valid_key = False
@@ -154,7 +164,7 @@ while not rospy.is_shutdown():
     while not valid_key:
         key = input("Press: \n"
                     '1 - change x coordinate \n'
-                    '2 - supposely move to ... \n'
+                    '2 - test ... \n'
                     '3 - pick up the needle and point it towards the entry \n'
                     '4 - print locations of entries and exits in world frame \n')
 
@@ -182,11 +192,13 @@ while not rospy.is_shutdown():
             servo_cp_msg.transform.translation.z = temp.p.z()
 
         if key == 2:
-                another_key = int(input('1 - ... exit 1 w/ needle \n'
-                                    '2 - ... above needle tip \n'
+                another_key = int(input('1 - ... move to exit 1 w/ needle \n'
+                                    '2 - ... move to above needle tip \n'
                                     '3 - ... rotate at the entry 1 ONLY \n'
                                     '4 - ... rotate at the exit 1 ONLY \n'
-                                    '5 - ... rotate around the center ONLY \n'))
+                                    '5 - ... rotate around the center ONLY \n'
+                                    '6 - ... move_cp(SE3) \n'
+                                    '7 - ... move_cp2(frame)' ))
 
                 if another_key == 1:
                     target_pose = exit1_frame * (T1 * T2 * T3).Inverse()
@@ -222,8 +234,11 @@ while not rospy.is_shutdown():
                 if another_key ==  6:
                     pose1 = SE3(-0.268,-0.067,-1.179)
                     pose2 = SE3(-0.4365,0.20149,-1.3246)
-                    tg =  rtb.ctraj(pose1,pose2, 20)
-                    print(tg)
+                    move_cp(pose1, pose2, 300)
+                    break
+
+                if another_key == 7:
+
 
                 # move the arm to it
                 set_servo_cp_2(target_pose)
