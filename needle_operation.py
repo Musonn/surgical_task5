@@ -10,6 +10,8 @@ from PyKDL import Rotation, Vector, Frame
 import time
 import keyboard
 from launch_crtk_interface import SceneManager, Options
+import roboticstoolbox as rtb
+from spatialmath import SE3
 
 class RobotData:
     def __init__(self):
@@ -132,7 +134,7 @@ entry1_frame.M = entry1_frame.M.EulerZYX(-3.14/2, 3.14/2, 0)
 exit1_frame = Frame(Rotation(0.692862, 0,     0.72107, 0, 1, 0, -0.72107, 0, 0.692862), Vector(0.0407746,     0.44189,    0.748603 )) # data from key == 4
 # exit1_frame.M = exit1_frame.M.EulerZYX( 0, -3.14/2, 3.14/2)
 exit1_frame.M = exit1_frame.M.RPY( 3.14/2, 0, 0)
-CC = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(0.002, 0.442, 0.791))
+CC = Frame(Rotation(0.692862, 0, -0.72107, 0, 1, 0, 0.72107,0 , 0.692862), Vector(0.002, 0.442, 0.791)) # see README. Same orientation as entry 1
 
 # suture function
 global suture_r
@@ -142,6 +144,9 @@ def suture_r(entry_frame, angle):
     circle_center.M.DoRotZ(float(angle))
     target_pose = circle_center * T1.Inverse()
     return T_w_b * target_pose
+
+# trajectory planning function
+
 
 while not rospy.is_shutdown():
     valid_key = False
@@ -209,12 +214,16 @@ while not rospy.is_shutdown():
                     target_pose = circle_center * T1.Inverse()
                     target_pose = T_w_b * target_pose
                 if another_key == 5:
-                    T4 = Frame(Vector(0.002+0.037, 0, 0.041))
+                    T4 = Frame(Vector(-0.037, 0.442, 0.750)-Vector(0.002, 0.442, 0.791))
                     # rotate by deg around z
-                
-                CC.M.DoRotZ(float(input()))
+                    CC.M.DoRotZ(float(input()))
                     target_pose =CC * T4  * (T1 * T2 * T3).Inverse()
                     target_pose = T_w_b * target_pose
+                if another_key ==  6:
+                    pose1 = SE3(-0.268,-0.067,-1.179)
+                    pose2 = SE3(-0.4365,0.20149,-1.3246)
+                    tg =  rtb.ctraj(pose1,pose2, 20)
+                    print(tg)
 
                 # move the arm to it
                 set_servo_cp_2(target_pose)
@@ -241,7 +250,6 @@ while not rospy.is_shutdown():
 
             '''go to the entry 1'''
             # entry 1 position from key == 4: pose of entry 1
-
             target_pose = entry1_frame * (T1 * T2 * T3).Inverse()
             s4 = T_w_b * target_pose
             
