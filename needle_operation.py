@@ -149,7 +149,18 @@ def suture_r(entry_frame, angle):
 # trajectory planning function
 def move_cp(T0,T1,s):
     tj = rtb.ctraj(T0, T1, s)
-    # tj = posemath.fromMatrix(tg[0])
+    for _SE3 in tj:
+        _array = _SE3.A
+        print(type(_array))
+        _frame = posemath.fromMatrix(_array)
+        set_servo_cp_2(_frame)
+        servo_cp_pub.publish(servo_cp_msg)
+        time.sleep(0.05)
+
+def move_cp2(F0,F1,s):
+    T0 = SE3(posemath.toMatrix(F0))
+    T1 = SE3(posemath.toMatrix(F1))
+    tj = rtb.ctraj(T0, T1, s)
     for _SE3 in tj:
         _array = _SE3.A
         print(type(_array))
@@ -238,7 +249,10 @@ while not rospy.is_shutdown():
                     break
 
                 if another_key == 7:
-
+                    s1 = entry1_frame
+                    s2 = CC
+                    move_cp2(s1, s2, 300)
+                    break
 
                 # move the arm to it
                 set_servo_cp_2(target_pose)
