@@ -262,6 +262,8 @@ while not rospy.is_shutdown():
             # grasp needle and point towards the entry
             # See README for details about transformations
 
+            s0 = psm2.measured_cp()
+
             '''move to above needle tail'''
             above_needle_center = Frame(Rotation(0.99955, 0.000893099,   0.0299795, 1.6103e-05,     0.99954,  -0.0303135, -0.0299928,   0.0303003,    0.999091),
                                         Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
@@ -283,39 +285,35 @@ while not rospy.is_shutdown():
             s4 = T_w_b * target_pose
             
             servo_jaw_pub.publish(servo_jaw_angle_open)
-            time.sleep(1)
-            servo_cp_msg = set_servo_cp_2(s1)
-            servo_cp_pub.publish(servo_cp_msg)
-            time.sleep(5)
-            set_servo_cp_2(s2)
-            servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(3)
+            move_cp2(s0, s1, 20)
+            time.sleep(3)
+            move_cp2(s1, s2, 20)
             time.sleep(3)
             servo_jaw_pub.publish(servo_jaw_angle_closed)
-            time.sleep(6)
-            set_servo_cp(s3)
-            servo_cp_pub.publish(servo_cp_msg)
-            time.sleep(6)
-            set_servo_cp_2(s4)
-            servo_cp_pub.publish(servo_cp_msg)
-            time.sleep(6)
+            time.sleep(3)
+            move_cp2(s2, s3, 20)
+            time.sleep(3)
+            move_cp2(s3, s4, 20)
+            time.sleep(3)
 
-            set_servo_cp_2(suture_r(entry1_frame, 0.3))
-            servo_cp_pub.publish(servo_cp_msg)
+            s5 = suture_r(entry1_frame, 0.3)
+            s6 = suture_r(entry1_frame, 0.6)
+            s7 = suture_r(entry1_frame, 1)
+            s8 = suture_r(exit1_frame, -0.5)
+            s9 = suture_r(exit1_frame, -0.1)
+            s10 = suture_r(exit1_frame, 0.2)
+            move_cp2(s4, s5, 20)
             time.sleep(1)
-            set_servo_cp_2(suture_r(entry1_frame, 0.6))
-            servo_cp_pub.publish(servo_cp_msg)
+            move_cp2(s5, s6, 20)
             time.sleep(1)
-            set_servo_cp_2(suture_r(entry1_frame, 1))
-            servo_cp_pub.publish(servo_cp_msg)
+            move_cp2(s6, s7, 20)
             time.sleep(1)
-            set_servo_cp_2(suture_r(exit1_frame, -0.5))
-            servo_cp_pub.publish(servo_cp_msg)
+            move_cp2(s7, s8, 20)
             time.sleep(1)
-            set_servo_cp_2(suture_r(exit1_frame, -0.1))
-            servo_cp_pub.publish(servo_cp_msg)
+            move_cp2(s8, s9, 20)
             time.sleep(1)
-            set_servo_cp_2(suture_r(exit1_frame, 0.2))
-            servo_cp_pub.publish(servo_cp_msg)
+            move_cp2(s9, s10, 20)
             time.sleep(1)
 
         if key == 4:
