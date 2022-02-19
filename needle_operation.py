@@ -151,7 +151,6 @@ def move_cp(T0,T1,s):
     tj = rtb.ctraj(T0, T1, s)
     for _SE3 in tj:
         _array = _SE3.A
-        print(type(_array))
         _frame = posemath.fromMatrix(_array)
         set_servo_cp_2(_frame)
         servo_cp_pub.publish(servo_cp_msg)
@@ -163,7 +162,6 @@ def move_cp2(F0,F1,s):
     tj = rtb.ctraj(T0, T1, s)
     for _SE3 in tj:
         _array = _SE3.A
-        print(type(_array))
         _frame = posemath.fromMatrix(_array)
         set_servo_cp_2(_frame)
         servo_cp_pub.publish(servo_cp_msg)
@@ -247,12 +245,17 @@ while not rospy.is_shutdown():
                     pose2 = SE3(-0.4365,0.20149,-1.3246)
                     move_cp(pose1, pose2, 300)
                     break
-
                 if another_key == 7:
                     s1 = entry1_frame
-                    s2 = CC
+                    s2 = entry1_frame * Frame(Vector(0, 0, 0.02))
                     move_cp2(s1, s2, 300)
                     break
+
+                if another_key == 8:
+                    print("measured_cp: ", robData.measured_cp.transform)
+                    # 可以得到 xyz和 quaternion
+                    # 转换成frame才能放到move2里面1、
+                    # 设计trajectory必须要SE3作为input，那么SE3的input可以说quaternion吗
 
                 # move the arm to it
                 set_servo_cp_2(target_pose)
@@ -262,7 +265,7 @@ while not rospy.is_shutdown():
             # grasp needle and point towards the entry
             # See README for details about transformations
 
-            s0 = psm2.measured_cp()
+            s0 = psm2.measured_cp() #FIXME
 
             '''move to above needle tail'''
             above_needle_center = Frame(Rotation(0.99955, 0.000893099,   0.0299795, 1.6103e-05,     0.99954,  -0.0303135, -0.0299928,   0.0303003,    0.999091),
