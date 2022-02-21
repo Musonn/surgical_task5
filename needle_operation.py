@@ -1,3 +1,4 @@
+from ast import expr_context
 from ctypes.wintypes import MSG
 from utils.attach_needle import attach_needle
 from ambf_client import Client
@@ -6,13 +7,13 @@ import scene
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
 import rospy
-from PyKDL import Rotation, Vector, Frame
+from PyKDL import Rotation, Vector,Frame
 import time
-import keyboard
 from launch_crtk_interface import SceneManager, Options
 import roboticstoolbox as rtb
 from spatialmath import SE3
 import posemath
+import numpy as np
 
 class RobotData:
     def __init__(self):
@@ -156,16 +157,33 @@ def move_cp(T0,T1,s):
         servo_cp_pub.publish(servo_cp_msg)
         time.sleep(0.05)
 
-def move_cp2(F0,F1,s):
-    T0 = SE3(posemath.toMatrix(F0))
-    T1 = SE3(posemath.toMatrix(F1))
+def move_cp2(F0,F1,s, T = T_w_b):
+    # input frame MUST be under world frame, not base frame
+    try:
+        T0 = SE3(posemath.toMatrix(F0), check=False)
+        T1 = SE3(posemath.toMatrix(F1))
+    except ValueError:
+        print(posemath.toMatrix(F1))
     tj = rtb.ctraj(T0, T1, s)
     for _SE3 in tj:
         _array = _SE3.A
         _frame = posemath.fromMatrix(_array)
-        set_servo_cp_2(_frame)
+        set_servo_cp_2(T * _frame)
         servo_cp_pub.publish(servo_cp_msg)
         time.sleep(0.05)
+
+# get current cartesian frame
+def get_current_cp_frame(robData):
+    data = robData.measured_cp.transform
+    x = data.translation.x
+    y = data.translation.y
+    z = data.translation.z
+    v = Vector(x,y,z)
+
+    x,y,z,w = data.rotation.x, data.rotation.y, data.rotation.z, data.rotation.w
+    r = Rotation.Quaternion(x,y,z,w)
+    return Frame(r,v)
+
 
 while not rospy.is_shutdown():
     valid_key = False
@@ -244,17 +262,31 @@ while not rospy.is_shutdown():
                     pose1 = SE3(-0.268,-0.067,-1.179)
                     pose2 = SE3(-0.4365,0.20149,-1.3246)
                     move_cp(pose1, pose2, 300)
-                    break
                 if another_key == 7:
-                    s1 = entry1_frame
-                    s2 = entry1_frame * Frame(Vector(0, 0, 0.02))
-                    move_cp2(s1, s2, 300)
-                    break
+                    F0 = entry1_frame
+                    F1 = CC
+                    print(SE3.isvalid(posemath.toMatrix(F0)), SE3.isvalid(posemath.toMatrix(F1)))
+                    try:
+                        T0 = SE3(posemath.toMatrix(F0), check=False)
+                        T1 = SE3(posemath.toMatrix(F1), check=False)
+                        T1 = T1.norm()
+                        print(T1)
+                    except ValueError:
+                        print(T0.det(),np.linalg.det(posemath.toMatrix(F1)))
+                    tj = rtb.ctraj(T0, T1, 30)
+                    for _SE3 in tj:
+                        _array = _SE3.A
+                        _frame = posemath.fromMatrix(_array)
+                        print(_frame)
+                        set_servo_cp_2(T_w_b * _frame)
+                        servo_cp_pub.publish(servo_cp_msg)
+                        time.sleep(1)
 
                 if another_key == 8:
-                    print("measured_cp: ", robData.measured_cp.transform)
-                    # 可以得到 xyz和 quaternion
-                    # 转换成frame才能放到move2里面1、
+                    # print("measured_cp: ", robData.measured_cp.transform)
+                    print('translation', robData.measured_cp.transform.translation, type(robData.measured_cp.transform.translation))
+                    temp = get_current_cp_frame(robData)
+                    print(temp)
                     # 设计trajectory必须要SE3作为input，那么SE3的input可以说quaternion吗
 
                 # move the arm to it
@@ -265,19 +297,19 @@ while not rospy.is_shutdown():
             # grasp needle and point towards the entry
             # See README for details about transformations
 
-            s0 = psm2.measured_cp() #FIXME
+            s0 = get_current_cp_frame(robData)
 
             '''move to above needle tail'''
             above_needle_center = Frame(Rotation(0.99955, 0.000893099,   0.0299795, 1.6103e-05,     0.99954,  -0.0303135, -0.0299928,   0.0303003,    0.999091),
                                         Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
             T_center_tail = Frame(Rotation.RPY(0, -3.14, 0.5 * 3.14), Vector(-0.10253, 0.03, 0.05)) # data from HUiyun_script.py
             above_needle_tail = above_needle_center * T_center_tail
-            s1 = T_w_b * above_needle_tail
+            s1 = above_needle_tail  # FIXME why s1 is not the matrix belongs to SE(3).
 
             '''pick up the needle'''
             needle_tail = above_needle_tail
             needle_tail.p += Vector(0, 0, -0.09) # move down by 0.09
-            s2 = T_w_b * needle_tail
+            s2 = needle_tail
 
             '''go to a transition position'''
             s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
