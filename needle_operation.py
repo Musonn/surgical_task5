@@ -1,4 +1,4 @@
-from ast import expr_context
+from ast import Pass, expr_context
 from ctypes.wintypes import MSG
 from utils.attach_needle import attach_needle
 from ambf_client import Client
@@ -159,16 +159,15 @@ def move_cp(T0,T1,s):
 
 def move_cp2(F0,F1,s, T = T_w_b):
     # input frame MUST be under world frame, not base frame
-    try:
-        T0 = SE3(posemath.toMatrix(F0), check=False)
-        T1 = SE3(posemath.toMatrix(F1))
-    except ValueError:
-        print(posemath.toMatrix(F1))
+    T0 = SE3(posemath.toMatrix(F0), check=False)
+    T1 = SE3(posemath.toMatrix(F1), check=False)
+    T0 = T0.norm()
+    T1 = T1.norm()
     tj = rtb.ctraj(T0, T1, s)
     for _SE3 in tj:
         _array = _SE3.A
         _frame = posemath.fromMatrix(_array)
-        set_servo_cp_2(T * _frame)
+        set_servo_cp_2(_frame)
         servo_cp_pub.publish(servo_cp_msg)
         time.sleep(0.05)
 
@@ -283,14 +282,13 @@ while not rospy.is_shutdown():
                         time.sleep(1)
 
                 if another_key == 8:
-                    # print("measured_cp: ", robData.measured_cp.transform)
-                    print('translation', robData.measured_cp.transform.translation, type(robData.measured_cp.transform.translation))
-                    temp = get_current_cp_frame(robData)
-                    print(temp)
-                    # 设计trajectory必须要SE3作为input，那么SE3的input可以说quaternion吗
+                    s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
+                    set_servo_cp(s3)
+                    print("measured_cp: ", robData.measured_cp.transform)
 
                 # move the arm to it
-                set_servo_cp_2(target_pose)
+                try: set_servo_cp_2(target_pose)
+                except NameError: Pass
                 servo_cp_pub.publish(servo_cp_msg)
 
         if key == 3:
@@ -304,15 +302,18 @@ while not rospy.is_shutdown():
                                         Vector(-0.207883,     0.56198,    0.711725)) # data from HUiyun_script.py
             T_center_tail = Frame(Rotation.RPY(0, -3.14, 0.5 * 3.14), Vector(-0.10253, 0.03, 0.05)) # data from HUiyun_script.py
             above_needle_tail = above_needle_center * T_center_tail
-            s1 = above_needle_tail  # FIXME why s1 is not the matrix belongs to SE(3).
+            s1 = T_w_b * above_needle_tail  # FIXME why s1 is not the matrix belongs to SE(3).
 
             '''pick up the needle'''
             needle_tail = above_needle_tail
             needle_tail.p += Vector(0, 0, -0.09) # move down by 0.09
-            s2 = needle_tail
+            s2 = T_w_b * needle_tail
 
             '''go to a transition position'''
-            s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
+            transition = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
+            transition_frame = Frame(Vector(-0.4365, 0.20149, -1.3246))
+            transition_frame.M = needle_tail.M
+            s3 = transition_frame
 
             '''go to the entry 1'''
             # entry 1 position from key == 4: pose of entry 1
@@ -321,15 +322,15 @@ while not rospy.is_shutdown():
             
             servo_jaw_pub.publish(servo_jaw_angle_open)
             time.sleep(3)
-            move_cp2(s0, s1, 20)
+            move_cp2(s0, s1, 100)
             time.sleep(3)
-            move_cp2(s1, s2, 20)
+            move_cp2(s1, s2, 100)
             time.sleep(3)
             servo_jaw_pub.publish(servo_jaw_angle_closed)
             time.sleep(3)
-            move_cp2(s2, s3, 20)
+            move_cp2(s2, s3, 100)
             time.sleep(3)
-            move_cp2(s3, s4, 20)
+            move_cp2(s3, s4, 200)
             time.sleep(3)
 
             s5 = suture_r(entry1_frame, 0.3)
@@ -338,13 +339,13 @@ while not rospy.is_shutdown():
             s8 = suture_r(exit1_frame, -0.5)
             s9 = suture_r(exit1_frame, -0.1)
             s10 = suture_r(exit1_frame, 0.2)
-            move_cp2(s4, s5, 20)
+            move_cp2(s4, s5, 200)
             time.sleep(1)
             move_cp2(s5, s6, 20)
             time.sleep(1)
             move_cp2(s6, s7, 20)
             time.sleep(1)
-            move_cp2(s7, s8, 20)
+            move_cp2(s7, s8, 200)
             time.sleep(1)
             move_cp2(s8, s9, 20)
             time.sleep(1)
