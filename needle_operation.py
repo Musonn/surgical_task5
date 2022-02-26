@@ -158,7 +158,7 @@ def move_cp(T0,T1,s):
         time.sleep(0.05)
 
 def move_cp2(F0,F1,s, T = T_w_b):
-    # input frame MUST be under world frame, not base frame
+    # input frame MUST be under base frame
     T0 = SE3(posemath.toMatrix(F0), check=False)
     T1 = SE3(posemath.toMatrix(F1), check=False)
     T0 = T0.norm()
@@ -284,6 +284,7 @@ while not rospy.is_shutdown():
                 if another_key == 8:
                     s3 = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
                     set_servo_cp(s3)
+                    time.sleep(5)
                     print("measured_cp: ", robData.measured_cp.transform)
 
                 # move the arm to it
@@ -309,10 +310,29 @@ while not rospy.is_shutdown():
             needle_tail.p += Vector(0, 0, -0.09) # move down by 0.09
             s2 = T_w_b * needle_tail
 
-            '''go to a transition position'''
-            transition = [-0.4365,0.20149,-1.3246,2.423,1.1194,2.5558]
-            transition_frame = Frame(Vector(-0.4365, 0.20149, -1.3246))
-            transition_frame.M = needle_tail.M
+# transform: 
+#   translation: 
+#     x: -0.4365
+#     y: 0.20149
+#     z: -1.3246
+#   rotation: 
+#     x: -0.44450587832148564
+#     y: -0.15673322366779793
+#     z: 0.8320779949661028
+#     w: -0.2923960174652432
+# measured_cp:  translation: 
+#   x: -0.4555263280341801
+#   y: 0.20142959155286047
+#   z: -1.323356444777203
+# rotation: 
+#   x: 0.15390270337209705
+#   y: 0.8288184856382974
+#   z: 0.011714044065109085
+#   w: 0.5378072674579993
+
+
+            transition_frame = Frame(Vector(-0.4555263280341801, 0.20142959155286047, -1.323356444777203))
+            transition_frame.M = Rotation.Quaternion(0.15390270337209705, 0.8288184856382974, 0.011714044065109085, 0.5378072674579993)
             s3 = transition_frame
 
             '''go to the entry 1'''
@@ -330,7 +350,7 @@ while not rospy.is_shutdown():
             time.sleep(3)
             move_cp2(s2, s3, 100)
             time.sleep(3)
-            move_cp2(s3, s4, 200)
+            move_cp2(s3, s4, 100)
             time.sleep(3)
 
             s5 = suture_r(entry1_frame, 0.3)
@@ -340,17 +360,31 @@ while not rospy.is_shutdown():
             s9 = suture_r(exit1_frame, -0.1)
             s10 = suture_r(exit1_frame, 0.2)
             move_cp2(s4, s5, 200)
+            print('4-5')
             time.sleep(1)
-            move_cp2(s5, s6, 20)
-            time.sleep(1)
+            T0 = SE3(posemath.toMatrix(s5), check=False)
+            T1 = SE3(posemath.toMatrix(s6), check=False)
+            T0 = T0.norm()
+            T1 = T1.norm()
+            tj = rtb.ctraj(T0, T1, 50)
+            for _SE3 in tj:
+                _array = _SE3.A
+                print(_array)
+                _frame = posemath.fromMatrix(_array)
+                set_servo_cp_2(_frame)
+                servo_cp_pub.publish(servo_cp_msg)
+                time.sleep(0.05)
+            # set_servo_cp_2(s6)
+            # servo_cp_pub.publish(servo_cp_msg)
+            time.sleep(10)
             move_cp2(s6, s7, 20)
-            time.sleep(1)
-            move_cp2(s7, s8, 200)
-            time.sleep(1)
+            time.sleep(0.1)
+            move_cp2(s7, s8, 20)
+            time.sleep(0.1)
             move_cp2(s8, s9, 20)
-            time.sleep(1)
+            time.sleep(0.1)
             move_cp2(s9, s10, 20)
-            time.sleep(1)
+            time.sleep(0.1)
 
         if key == 4:
             # get the position of any entry
