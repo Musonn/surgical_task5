@@ -157,7 +157,7 @@ def move_cp(T0,T1,s):
         servo_cp_pub.publish(servo_cp_msg)
         time.sleep(0.05)
 
-def move_cp2(F0,F1,s, T = T_w_b):
+def move_cp2(F0,F1,s):
     # input frame MUST be under base frame
     T0 = SE3(posemath.toMatrix(F0), check=False)
     T1 = SE3(posemath.toMatrix(F1), check=False)
@@ -192,7 +192,8 @@ while not rospy.is_shutdown():
                     '1 - change x coordinate \n'
                     '2 - test ... \n'
                     '3 - pick up the needle and point it towards the entry \n'
-                    '4 - print locations of entries and exits in world frame \n')
+                    '4 - print locations of entries and exits in world frame \n'
+                    '5 - move in random trajectory \n')
 
         try:
             key = int(key)
@@ -200,7 +201,7 @@ while not rospy.is_shutdown():
             key = None
         pass
 
-        if key in [1, 2, 3, 4]:
+        if key in [1, 2, 3, 4, 5]:
             valid_key = True
         else:
             print("Invalid Entry")
@@ -309,28 +310,7 @@ while not rospy.is_shutdown():
             needle_tail = above_needle_tail
             needle_tail.p += Vector(0, 0, -0.09) # move down by 0.09
             s2 = T_w_b * needle_tail
-
-# transform: 
-#   translation: 
-#     x: -0.4365
-#     y: 0.20149
-#     z: -1.3246
-#   rotation: 
-#     x: -0.44450587832148564
-#     y: -0.15673322366779793
-#     z: 0.8320779949661028
-#     w: -0.2923960174652432
-# measured_cp:  translation: 
-#   x: -0.4555263280341801
-#   y: 0.20142959155286047
-#   z: -1.323356444777203
-# rotation: 
-#   x: 0.15390270337209705
-#   y: 0.8288184856382974
-#   z: 0.011714044065109085
-#   w: 0.5378072674579993
-
-
+            
             transition_frame = Frame(Vector(-0.4555263280341801, 0.20142959155286047, -1.323356444777203))
             transition_frame.M = Rotation.Quaternion(0.15390270337209705, 0.8288184856382974, 0.011714044065109085, 0.5378072674579993)
             s3 = transition_frame
@@ -352,39 +332,17 @@ while not rospy.is_shutdown():
             time.sleep(3)
             move_cp2(s3, s4, 100)
             time.sleep(3)
-
-            s5 = suture_r(entry1_frame, 0.3)
-            s6 = suture_r(entry1_frame, 0.6)
-            s7 = suture_r(entry1_frame, 1)
-            s8 = suture_r(exit1_frame, -0.5)
-            s9 = suture_r(exit1_frame, -0.1)
-            s10 = suture_r(exit1_frame, 0.2)
-            move_cp2(s4, s5, 200)
-            print('4-5')
-            time.sleep(1)
-            T0 = SE3(posemath.toMatrix(s5), check=False)
-            T1 = SE3(posemath.toMatrix(s6), check=False)
-            T0 = T0.norm()
-            T1 = T1.norm()
-            tj = rtb.ctraj(T0, T1, 50)
-            for _SE3 in tj:
-                _array = _SE3.A
-                print(_array)
-                _frame = posemath.fromMatrix(_array)
-                set_servo_cp_2(_frame)
+            
+            for i in range(3, 10, 1):
+                s = suture_r(entry1_frame, i/10) # angle MUST from 0.3 to 1
+                set_servo_cp_2(s)
                 servo_cp_pub.publish(servo_cp_msg)
-                time.sleep(0.05)
-            # set_servo_cp_2(s6)
-            # servo_cp_pub.publish(servo_cp_msg)
-            time.sleep(10)
-            move_cp2(s6, s7, 20)
-            time.sleep(0.1)
-            move_cp2(s7, s8, 20)
-            time.sleep(0.1)
-            move_cp2(s8, s9, 20)
-            time.sleep(0.1)
-            move_cp2(s9, s10, 20)
-            time.sleep(0.1)
+                time.sleep(0.3)
+            for i in range(-5, 2, 1):
+                s = suture_r(exit1_frame, i/10) # from -0.5 to 0.2
+                set_servo_cp_2(s)
+                servo_cp_pub.publish(servo_cp_msg)
+                time.sleep(0.3)
 
         if key == 4:
             # get the position of any entry
@@ -429,6 +387,27 @@ while not rospy.is_shutdown():
 
             sceneManager = SceneManager(options)
             sceneManager.run()
+
+        if key == 5:
+            for i in range(100):
+                vertice1 = [0.35, 1.0126, 1]
+                vertice2 = [-0.35,1.0126, 1]
+                vertice3 = [-0.35, -0.7174, 1]
+                vertice4 = [0.35, -0.7174, 1]
+
+                roll, pitch, yaw = np.random.uniform(-1,1), np.random.uniform(-1,1), np.random.uniform(-1,1)
+                x2 = np.random.uniform(-0.34, 0.34)
+                y2 = np.random.uniform(-0.6174, 0.9)
+                z2 = np.random.uniform(1, 1.1)
+
+                s0 = get_current_cp_frame(robData)
+                pose2 = T_w_b * Frame(Rotation.RPY(roll, pitch, yaw), Vector(x2, y2, z2))
+                servo_jaw_angle = JointState()
+                servo_jaw_angle.position = [np.random.choice([0.1, 0.5]), 0, 0, 0, 0, 0]
+                servo_jaw_pub.publish(servo_jaw_angle)
+                print(s0)
+                move_cp2(s0, pose2, 10)
+                time.sleep(10)
 
 
         servo_cp_pub.publish(servo_cp_msg)
